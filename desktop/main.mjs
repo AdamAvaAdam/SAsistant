@@ -8,6 +8,7 @@ import { AccountManager } from './manager.mjs';
 import { connect } from '../connector/zalo.mjs';
 import { attachment, fetchMedia } from './media.mjs';
 import { safeUrl } from '../connector/content.mjs';
+import { createWindowsCipher } from './windows-cipher.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 protocol.registerSchemesAsPrivileged([{ scheme: 'sa-media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
@@ -16,12 +17,9 @@ if (!app.isPackaged && process.env.SASISTANT_DEV_PROFILE) {
   app.setPath('userData', path.resolve(process.env.SASISTANT_DEV_PROFILE));
 }
 const gotLock = app.requestSingleInstanceLock();
-let win, manager, folder, closing = false, folderBusy = false;
+let win, manager, folder, recoveryNote = '', closing = false, folderBusy = false;
 const windowURL = pathToFileURL(path.join(here, 'window.html')).href;
-const cipher = {
-  encrypt: text => safeStorage.encryptStringAsync(text),
-  decrypt: async buffer => (await safeStorage.decryptStringAsync(buffer)).result,
-};
+const cipher = createWindowsCipher({ legacyDecrypt: async buffer => (await safeStorage.decryptStringAsync(buffer)).result });
 function requireManager() { if (!manager || folderBusy || closing) throw Error('Hãy chọn thư mục lưu trữ trước.'); return manager; }
 function secureHandle(channel, handler) {
   ipcMain.handle(channel, async (event, ...args) => {
@@ -38,7 +36,7 @@ async function openStore(selected) {
   await candidate.persist();
   return candidate;
 }
-function info() { return { version: app.getVersion(), folder: folder || null, storageError: manager?.storageError || '', encrypted: true }; }
+function info() { return { version: app.getVersion(), folder: folder || null, notice: manager && [...manager.accounts.values()].some(a => !a.credentials) ? recoveryNote : '', storageError: manager?.storageError || '', encrypted: true }; }
 async function chooseFolder() {
   if (folderBusy) throw Error('Đang chọn thư mục.');
   folderBusy = true;
@@ -78,7 +76,7 @@ async function boot() {
       return new Response(limited, { status: response.status, headers });
     } catch { return new Response('Không tải được nội dung từ Zalo.', { status: 502 }); }
   });
-  if (process.platform !== 'win32' || !await safeStorage.isAsyncEncryptionAvailable()) throw Error('Ứng dụng cần Windows có mã hóa tài khoản khả dụng.');
+  if (process.platform !== 'win32') throw Error('Ứng dụng cần Windows có mã hóa tài khoản khả dụng.');
   // Renderer loads local assets only; Zalo network requests stay in the main process.
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('sa-media:') && !details.url.startsWith('data:image/png;base64,') && !details.url.startsWith('devtools:') }));
@@ -118,6 +116,7 @@ async function boot() {
   let startupError;
   try {
     const saved = JSON.parse(await readFile(path.join(app.getPath('userData'), 'storage-location.json'), 'utf8'));
+    recoveryNote = typeof saved.recoveryNote === 'string' ? saved.recoveryNote : '';
     if (typeof saved.folder !== 'string' || !path.isAbsolute(saved.folder)) throw Error('Đường dẫn không hợp lệ.');
     try { if (!(await stat(saved.folder)).isDirectory()) throw Error(); }
     catch { throw Error('Không tìm thấy thư mục dữ liệu đã chọn. Kiểm tra ổ đĩa rồi chọn lại thư mục; ứng dụng không tự tạo kho trống thay thế.'); }

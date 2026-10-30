@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id), api = window.sasistant;
 let accounts = [], info = {}, jobs = [], filter = 'all', active = '', selected = '', unreadOnly = false, busy = false, sending = false, changingFolder = false;
 let messageStamp = '', listStamp = '', tabsStamp = '', settingsStamp = '', historyNote = '', scheduleTarget;
+let recoveryShown = false, recoveryText = '';
 const drafts = new Map(), historyAsked = new Set();
 function node(tag, text = '', cls = '') { const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n; }
 function error(text = '') { $('error').textContent = text; $('error').hidden = !text; for (const p of document.querySelectorAll('[data-dialog-error]')) { p.textContent = text; p.hidden = !text; } }
@@ -146,14 +147,14 @@ function renderJobs() {
   if (!jobs.length) $('scheduleList').append(node('p', 'Chưa có lịch gửi. Chọn hội thoại rồi bấm Hẹn giờ.', 'hint'));
 }
 function render() {
-  $('version').textContent = 'v' + (info.version || '0.4.0'); renderTabs(); renderList(); renderChat(); renderSettings(); renderJobs();
+  $('version').textContent = 'v' + (info.version || '0.4.1'); renderTabs(); renderList(); renderChat(); renderSettings(); renderJobs();
   const visibleAccounts = accounts.filter(a => filter === 'all' || a.id === filter);
   $('syncStatus').textContent = filter === 'all' ? visibleAccounts.filter(a => a.status === 'Đã kết nối').length + '/' + accounts.length + ' tài khoản đang kết nối · Lịch sử tùy dữ liệu Zalo trả về' : visibleAccounts[0]?.syncStatus || visibleAccounts[0]?.status || '';
   $('syncHistory').disabled = !visibleAccounts.some(a => a.status === 'Đã kết nối');
 }
 async function refresh() {
   if (busy || changingFolder) return; busy = true;
-  try { const [list, details] = await Promise.all([api.list(), api.info()]); accounts = list; info = details; jobs = info.folder ? await api.schedules() : []; if (active && !accounts.some(a => a.id === active)) { active = ''; selected = ''; } if (info.storageError) error(info.storageError); render(); }
+  try { const [list, details] = await Promise.all([api.list(), api.info()]); accounts = list; info = details; jobs = info.folder ? await api.schedules() : []; if (active && !accounts.some(a => a.id === active)) { active = ''; selected = ''; } if (info.storageError) error(info.storageError); else if (info.notice) { recoveryText = info.notice; error(info.notice); if (!recoveryShown) { modal('settingsDialog'); recoveryShown = true; } } else if (recoveryText && $('error').textContent === recoveryText) { error(); recoveryText = ''; } render(); }
   catch (e) { error(e.message); } finally { busy = false; }
 }
 async function loadHistory(manual) {

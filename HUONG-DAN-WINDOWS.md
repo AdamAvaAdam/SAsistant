@@ -1,8 +1,8 @@
-# SAsistant Windows 0.4.0
+# SAsistant Windows 0.4.1
 
 ## Sử dụng
 
-Ứng dụng đã cài trên máy có thể được cập nhật bằng `SAsistant-Setup-0.4.0-x64.exe`. Thư mục dữ liệu và phiên đăng nhập đã chọn được giữ lại. Không cần Node.js trên máy sử dụng.
+Ứng dụng đã cài trên máy có thể được cập nhật bằng `SAsistant-Setup-0.4.1-x64.exe`. Thư mục dữ liệu và phiên đăng nhập đã chọn được giữ lại. Không cần Node.js trên máy sử dụng.
 
 - Thanh tài khoản phía trên có dấu trạng thái và số tin chưa đọc. Chọn **Tất cả** để xem hội thoại của mọi tài khoản, hoặc chọn từng tài khoản. **Chưa đọc** lọc những hội thoại có tin mới app đã nhận. Tin cũ vừa nhập không bị tính thành tin mới.
 - Phần thêm/xóa/đăng nhập tài khoản và chọn thư mục nằm trong **Quản lý**, không chiếm cột chat. Màn hình chính chỉ có danh sách hội thoại và khung nội dung toàn chiều cao.
@@ -24,7 +24,7 @@ App ghi trạng thái Đang gửi xuống ổ đĩa trước khi gọi Zalo. N�
 
 ## Lưu trữ và phiên
 
-Kho `du-lieu.sasistant`, bản trước `.bak` và tệp tạm `.tmp` nằm trong thư mục ông chọn. Hộp thư, liên kết đa phương tiện, phiên, trạng thái đã đọc và lịch gửi đều được mã hóa bằng Electron safeStorage/Windows DPAPI. File cấu hình đường dẫn và bộ nhớ đệm giao diện vẫn ở `%APPDATA%\sasistant-desktop`.
+Kho `du-lieu.sasistant`, bản trước `.bak` và tệp tạm `.tmp` nằm trong thư mục ông chọn. Hộp thư, liên kết đa phương tiện, phiên, trạng thái đã đọc và lịch gửi đều được mã hóa bằng AES-256-GCM; khóa dữ liệu được Windows DPAPI bảo vệ và lưu kèm kho, không phụ thuộc khóa bộ nhớ đệm Chromium. File cấu hình đường dẫn và bộ nhớ đệm giao diện vẫn ở `%APPDATA%\sasistant-desktop`.
 
 Đóng app bình thường để lưu xong. Mở lại sẽ thử khôi phục phiên. Đổi thư mục mở kho độc lập, không tự di chuyển/gộp kho. Xóa tài khoản khỏi app không đảm bảo thu hồi phiên bên Zalo; dùng quản lý thiết bị đăng nhập của Zalo nếu cần thu hồi. Bản dự phòng trước đó có thể còn phiên/hộp thư. Gỡ app không tự xóa thư mục dữ liệu.
 
@@ -32,9 +32,9 @@ Sao lưu khi app đã đóng, giữ cả cấu hình ứng dụng Windows. Chép
 
 ## Kiểm chứng và giới hạn
 
-- 18 kiểm thử tự động: tin cũ/mới, metadata người/nhóm, đa phương tiện, chống trùng, chưa đọc, lưu mã hóa, lịch gửi đúng một lần, hủy, quá giờ, lỗi ổ đĩa và kết quả chưa rõ.
+- 19 kiểm thử tự động: tin cũ/mới, metadata người/nhóm, đa phương tiện, chống trùng, chưa đọc, lưu mã hóa, lịch gửi đúng một lần, hủy, quá giờ, lỗi ổ đĩa và kết quả chưa rõ.
 - Đã kiểm tra giao diện với dữ liệu giả: ảnh mẫu, tên người gửi, dấu chưa đọc và tạo lịch mẫu. Kiểm thử không gửi tin Zalo thật theo lịch.
-- Người dùng đã xác nhận bản 0.3.2 có hai tài khoản và nhận được hội thoại. Lịch sử, tên và đa phương tiện ở 0.4.0 còn phụ thuộc dữ liệu Zalo trả về; video/âm thanh/tệp từng định dạng chưa được kiểm chứng đầy đủ bằng tài khoản thật.
+- Người dùng đã xác nhận bản 0.3.2 có hai tài khoản và nhận được hội thoại. Lịch sử, tên và đa phương tiện ở 0.4.1 còn phụ thuộc dữ liệu Zalo trả về; video/âm thanh/tệp từng định dạng chưa được kiểm chứng đầy đủ bằng tài khoản thật.
 - Chưa hỗ trợ gửi ảnh/video/tệp, lên lịch đa phương tiện, AI hoặc đồng bộ trọn lịch sử Zalo.
 - Đây là kết nối không chính thức, có rủi ro hạn chế/khóa tài khoản. Thử tài khoản phụ trước.
 
@@ -42,3 +42,7 @@ Sao lưu khi app đã đóng, giữ cả cấu hình ứng dụng Windows. Chép
 
 Node.js 22+: `npm ci`, `npm test`, `npm start`, `npm run dist:win`.
 Nguồn tham chiếu: mã zca-js 2.2.0 (`listen.ts`, `Message.ts`, `getGroupInfo.ts`, `getUserInfo.ts`, `getGroupChatHistory.ts`, `sendVideo.ts`, `sendVoice.ts`), [zca-js](https://github.com/RFS-ADRENO/zca-js), [Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage).
+
+## Tương thích kho mã hóa cũ
+
+Bản 0.4.1 thay cơ chế giữ khóa sau khi phát hiện một kho dùng safeStorage cũ không giải mã được khi mở lại, kể cả bằng bản 0.3.2. Kiểm thử trước đó chỉ đọc lại trong cùng tiến trình nên chưa đủ. Bản mới đã kiểm thử ghi và đọc qua các tiến trình Windows độc lập. Với kho cũ còn giải mã được, app đọc qua bộ tương thích rồi lưu định dạng mới. Nếu không giải mã được, không ghi đè kho gốc; cần giữ cả file chính và .bak, chọn kho mới riêng và quét QR lại. Chưa bảo đảm khôi phục được nội dung từ kho không còn khóa phù hợp.
