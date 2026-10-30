@@ -5,3 +5,7 @@ qr*.png
 sessions/
 credentials/
 .local/
+release/
+*.sasistant
+*.sasistant.bak
+*.sasistant.tmp

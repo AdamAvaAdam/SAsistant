@@ -1,5 +1,11 @@
 # SAsistant – VT Zalo AI (MVP 1.0)
 
+## Ứng dụng Windows v0.3.0
+
+Đã bổ sung ứng dụng desktop độc lập: mở cửa sổ riêng, chọn thư mục dữ liệu bằng hộp thoại Windows, tự lưu phiên và hộp thư mã hóa, tự thử khôi phục phiên khi mở lại. Không cần chạy connector riêng, không cần mã ghép nối, không mở cổng HTTP. Xem [hướng dẫn cài và sử dụng](HUONG-DAN-WINDOWS.md).
+
+Bộ cài tạo tại `release/SAsistant-Setup-0.3.0-x64.exe`; file này không đưa vào Git. Mã nguồn desktop nằm trong `desktop/`; cài thư viện bằng `npm ci`, chạy `npm start`, đóng gói bằng `npm run dist:win`. Bảy kiểm thử tự động đạt và đã mở thử cửa sổ desktop, chọn thư mục, lưu mã hóa, đóng/mở lại trên Windows. Chưa kiểm chứng đăng nhập/gửi nhận Zalo thật hoặc 6 phiên Zalo đồng thời.
+
 ## Bản connector cá nhân mới
 
 Mở [Hộp thư Zalo + QR](inbox.html). Chạy connector local theo [hướng dẫn](connector/README.md). Có 6 slot tài khoản, callback QR, hộp thư tin mới và gửi văn bản thủ công. Phiên chỉ trong RAM, không lưu lên GitHub. Đọc bảng trạng thái kiểm chứng trong hướng dẫn: kiểm thử giả lập không đồng nghĩa đã đăng nhập/gửi nhận Zalo thật. Phần bên dưới mô tả giao diện demo cũ tại index.html.

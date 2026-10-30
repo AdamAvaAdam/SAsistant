@@ -1,0 +1,25 @@
+{
+  "name": "sasistant-desktop",
+  "version": "0.3.0",
+  "description": "SAsistant — ứng dụng Zalo cá nhân cho Windows",
+  "author": "AdamAvaAdam",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test desktop/*.test.mjs connector/server.test.mjs",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": { "zca-js": "2.2.0" },
+  "devDependencies": { "electron": "45.1.0", "electron-builder": "26.18.0" },
+  "build": {
+    "appId": "vn.sasistant.personal",
+    "productName": "SAsistant",
+    "asar": true,
+    "directories": { "output": "release" },
+    "files": ["desktop/main.mjs", "desktop/preload.cjs", "desktop/manager.mjs", "desktop/storage.mjs", "desktop/window.html", "desktop/window.js", "desktop/window.css", "connector/zalo.mjs", "package.json"],
+    "win": { "target": "nsis", "artifactName": "SAsistant-Setup-${version}-x64.exe", "signAndEditExecutable": false },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "deleteAppDataOnUninstall": false, "runAfterFinish": false }
+  }
+}
