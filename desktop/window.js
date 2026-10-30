@@ -2,17 +2,22 @@
 const $ = id => document.getElementById(id);
 const api = window.sasistant;
 let accounts = [], active = '', selected = '', info = {}, busy = false, sending = false, changingFolder = false;
+let storageOpen = false;
 const drafts = new Map(); let rendered = '', lastMessages = '';
 function error(message = '') { $('error').textContent = message; $('error').hidden = !message; }
 function node(tag, text, className) { const n = document.createElement(tag); if (text) n.textContent = text; if (className) n.className = className; return n; }
 function saveDraft() { if (active && selected) drafts.set(active + ':' + selected, $('text').value); }
 function select(account, thread = '') { saveDraft(); active = account; selected = thread; $('text').value = drafts.get(active + ':' + selected) || ''; render(); }
 function render() {
+  const showStorage = !info.folder || storageOpen;
+  $('storagePanel').hidden = !showStorage;
+  $('storageSettings').setAttribute('aria-expanded', String(showStorage));
+  $('hideStorage').hidden = !info.folder;
   $('folder').textContent = info.folder || 'Ông có thể chọn một thư mục riêng trên máy tính.';
   $('storageTitle').textContent = info.folder ? 'Thư mục dữ liệu đang sử dụng' : 'Chọn nơi lưu dữ liệu để bắt đầu';
   $('chooseFolder').textContent = info.folder ? 'Đổi thư mục…' : 'Chọn thư mục lưu trữ';
   $('chooseFolder').disabled = changingFolder || sending;
-  $('version').textContent = 'Windows · v' + (info.version || '0.3.0'); $('welcome').hidden = !!info.folder;
+  $('version').textContent = 'Windows · v' + (info.version || '0.3.1'); $('welcome').hidden = !!info.folder;
   $('count').textContent = accounts.length + ' / 6'; $('addButton').disabled = !info.folder || accounts.length >= 6 || changingFolder;
   const accountKey = JSON.stringify(accounts.map(({ id, name, status, connecting }) => ({ id, name, status, connecting }))) + active;
   if (rendered !== accountKey) {
@@ -71,9 +76,11 @@ async function refresh() {
     render();
   } catch (e) { error(e.message); } finally { busy = false; }
 }
+$('storageSettings').onclick = () => { storageOpen = !storageOpen; render(); };
+$('hideStorage').onclick = () => { storageOpen = false; render(); $('storageSettings').focus(); };
 $('chooseFolder').onclick = async () => {
   if (changingFolder || sending) return; changingFolder = true; render();
-  try { error(); const next = await api.chooseFolder(); if (next.folder !== info.folder) { drafts.clear(); active = ''; selected = ''; accounts = []; $('text').value = ''; rendered = ''; } info = next; }
+  try { error(); const next = await api.chooseFolder(); if (next.folder !== info.folder) { drafts.clear(); active = ''; selected = ''; accounts = []; $('text').value = ''; rendered = ''; storageOpen = false; } info = next; }
   catch (e) { error(e.message); } finally { changingFolder = false; await refresh(); }
 };
 $('add').onsubmit = async e => { e.preventDefault(); $('addButton').disabled = true; try { error(); const result = await api.add($('name').value); select(result.id); $('name').value = ''; await refresh(); } catch (e) { error(e.message); render(); } };
