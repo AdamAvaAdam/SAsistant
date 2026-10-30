@@ -1,5 +1,9 @@
 # SAsistant – VT Zalo AI (MVP 1.0)
 
+## Bản connector cá nhân mới
+
+Mở [Hộp thư Zalo + QR](inbox.html). Chạy connector local theo [hướng dẫn](connector/README.md). Có 6 slot tài khoản, callback QR, hộp thư tin mới và gửi văn bản thủ công. Phiên chỉ trong RAM, không lưu lên GitHub. Đọc bảng trạng thái kiểm chứng trong hướng dẫn: kiểm thử giả lập không đồng nghĩa đã đăng nhập/gửi nhận Zalo thật. Phần bên dưới mô tả giao diện demo cũ tại index.html.
+
 Ứng dụng web thử nghiệm chạy trên GitHub Pages. Dữ liệu được lưu tại trình duyệt bằng localStorage và không tự đồng bộ giữa các thiết bị.
 
 ## Chức năng hiện có
