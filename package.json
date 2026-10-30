@@ -1,6 +1,6 @@
 {
   "name": "sasistant-desktop",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SAsistant — ứng dụng Zalo cá nhân cho Windows",
   "author": "AdamAvaAdam",
   "private": true,
@@ -8,7 +8,7 @@
   "main": "desktop/main.mjs",
   "scripts": {
     "start": "electron .",
-    "test": "node --test desktop/*.test.mjs connector/server.test.mjs",
+    "test": "node --test desktop/*.test.mjs connector/*.test.mjs",
     "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
@@ -34,7 +34,8 @@
       "desktop/window.js",
       "desktop/window.css",
       "connector/zalo.mjs",
-      "package.json"
+      "package.json",
+      "connector/inbox-sync.mjs"
     ],
     "win": {
       "target": "nsis",

@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('sasistant', Object.freeze({
   list: () => invoke('sa:list'),
   add: name => invoke('sa:add', name),
   login: id => invoke('sa:login', id),
+  reconnect: id => invoke('sa:reconnect', id),
+  sync: id => invoke('sa:sync', id),
   remove: id => invoke('sa:remove', id),
   send: (id, body) => invoke('sa:send', id, body),
 }));

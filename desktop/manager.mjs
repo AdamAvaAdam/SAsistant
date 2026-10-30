@@ -6,7 +6,7 @@ export class AccountManager {
   snapshot() {
     return { version: 1, accounts: [...this.accounts.values()].map(a => ({ id: a.id, name: a.name, messages: a.messages, ...(a.credentials ? { credentials: a.credentials } : {}) })) };
   }
-  list() { return [...this.accounts.values()].map(a => ({ id: a.id, name: a.name, status: a.status, qr: a.qr, messages: a.messages, connecting: !!a.connecting })); }
+  list() { return [...this.accounts.values()].map(a => ({ id: a.id, name: a.name, status: a.status, syncStatus: a.syncStatus || '', qr: a.qr, messages: a.messages, connecting: !!a.connecting })); }
   async persist() {
     if (this.closed) return;
     try { await this.store.write(this.snapshot()); this.storageError = ''; }
@@ -37,16 +37,27 @@ export class AccountManager {
     this.start(a); return { id: a.id };
   }
   account(id) { const a = this.accounts.get(id); if (!a) throw Error('Không tìm thấy tài khoản.'); return a; }
+  async reconnect(id) {
+    const a = this.account(id);
+    if (a.connecting || a.sending) throw Error('Tài khoản đang xử lý; hãy đợi kết quả.');
+    a.disposeInbox?.(); a.api?.listener.stop(); a.api = null; a.cancelled = false; a.qr = null;
+    a.status = 'Đang kết nối lại'; this.start(a); return { ok: true };
+  }
+  sync(id) {
+    const a = this.account(id);
+    if (a.status !== 'Đã kết nối' || !a.syncHistory) throw Error('Tài khoản chưa mở được kênh tin nhắn.');
+    return a.syncHistory(true);
+  }
   async login(id) {
     const a = this.account(id);
     if (a.connecting || a.sending) throw Error('Tài khoản đang xử lý. Hãy đợi hoặc xóa phiên chờ để bắt đầu lại.');
-    a.api?.listener.stop(); a.api = null; a.credentials = null; a.qr = null; a.cancelled = false; a.status = 'Đang yêu cầu QR';
+    a.disposeInbox?.(); a.api?.listener.stop(); a.api = null; a.credentials = null; a.qr = null; a.cancelled = false; a.status = 'Đang yêu cầu QR';
     await this.persist(); this.start(a); return { ok: true };
   }
   async remove(id) {
     const a = this.account(id);
     if (a.sending) throw Error('Đang gửi tin; hãy đợi kết quả trước khi xóa.');
-    a.cancelled = true; a.abort?.(); a.api?.listener.stop(); this.accounts.delete(id);
+    a.cancelled = true; a.disposeInbox?.(); a.abort?.(); a.api?.listener.stop(); this.accounts.delete(id);
     try { await this.persist(); } catch (e) { a.status = 'Đã dừng — chưa xóa khỏi ổ đĩa'; this.accounts.set(id, a); throw e; }
     return { ok: true };
   }
@@ -59,9 +70,10 @@ export class AccountManager {
     if (a.sending || Date.now() - (a.lastSend || 0) < 3000) throw Error('Chờ 3 giây giữa các lần gửi.');
     a.sending = true;
     try {
-      await a.api.sendMessage(body.text.trim(), thread.threadId, thread.type);
+      const result = await a.api.sendMessage(body.text.trim(), thread.threadId, thread.type);
       a.lastSend = Date.now();
-      a.messages.push({ id: randomUUID(), threadId: thread.threadId, type: thread.type, name: thread.name, self: true, text: body.text.trim(), at: String(Date.now()) });
+      const id = String(result?.message?.msgId || randomUUID());
+      if (!a.messages.some(m => m.id === id && m.threadId === thread.threadId && m.type === thread.type)) a.messages.push({ id, threadId: thread.threadId, type: thread.type, name: thread.name, self: true, text: body.text.trim(), at: String(Date.now()) });
       a.messages = a.messages.slice(-1000);
       try { await this.persist(); } catch { return { ok: true, warning: this.storageError + ' Tin đã gửi; không gửi lại.' }; }
       return { ok: true };
@@ -70,7 +82,7 @@ export class AccountManager {
   }
   async stop() {
     clearTimeout(this.saveTimer);
-    for (const a of this.accounts.values()) { a.cancelled = true; a.abort?.(); a.api?.listener.stop(); a.qr = null; a.status = 'Đã dừng kết nối'; }
+    for (const a of this.accounts.values()) { a.cancelled = true; a.disposeInbox?.(); a.abort?.(); a.api?.listener.stop(); a.qr = null; a.status = 'Đã dừng kết nối'; }
     await this.persist(); this.closed = true; clearTimeout(this.saveTimer);
   }
 }

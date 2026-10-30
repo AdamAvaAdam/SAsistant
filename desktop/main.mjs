@@ -77,6 +77,8 @@ async function boot() {
   secureHandle('sa:list', () => manager ? manager.list() : []);
   secureHandle('sa:add', name => requireManager().add(name));
   secureHandle('sa:login', id => requireManager().login(id));
+  secureHandle('sa:reconnect', id => requireManager().reconnect(id));
+  secureHandle('sa:sync', id => requireManager().sync(id));
   secureHandle('sa:remove', async id => {
     const result = await dialog.showMessageBox(win, { type: 'question', title: 'Xóa tài khoản khỏi SAsistant?', message: 'Xóa phiên và hộp thư của tài khoản này khỏi kho đang mở?', detail: 'Bản lưu dự phòng trước đó có thể còn dữ liệu. Muốn thu hồi phiên bên Zalo, hãy kiểm tra Thiết bị đăng nhập trên điện thoại.', buttons: ['Giữ lại', 'Xóa khỏi ứng dụng'], defaultId: 0, cancelId: 0 });
     if (result.response !== 1) return { cancelled: true };
@@ -92,6 +94,7 @@ async function boot() {
     manager = await openStore(saved.folder); folder = saved.folder; manager.restore();
   } catch (e) { if (e.code !== 'ENOENT') startupError = e.message; }
   await win.loadFile(path.join(here, 'window.html'));
+  win.setTitle('SAsistant ' + app.getVersion() + ' · Zalo cá nhân');
   win.show();
   if (startupError) await dialog.showMessageBox(win, { type: 'error', title: 'Chưa mở được kho dữ liệu', message: startupError, detail: 'Ứng dụng không ghi đè file lỗi. Chọn lại đúng thư mục hoặc khôi phục bản dự phòng.' });
   win.on('close', async event => {

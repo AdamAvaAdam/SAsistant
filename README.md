@@ -1,10 +1,10 @@
 # SAsistant – VT Zalo AI (MVP 1.0)
 
-## Ứng dụng Windows v0.3.0
+## Ứng dụng Windows v0.3.2
 
 Đã bổ sung ứng dụng desktop độc lập: mở cửa sổ riêng, chọn thư mục dữ liệu bằng hộp thoại Windows, tự lưu phiên và hộp thư mã hóa, tự thử khôi phục phiên khi mở lại. Không cần chạy connector riêng, không cần mã ghép nối, không mở cổng HTTP. Xem [hướng dẫn cài và sử dụng](HUONG-DAN-WINDOWS.md).
 
-Bộ cài tạo tại `release/SAsistant-Setup-0.3.0-x64.exe`; file này không đưa vào Git. Mã nguồn desktop nằm trong `desktop/`; cài thư viện bằng `npm ci`, chạy `npm start`, đóng gói bằng `npm run dist:win`. Bảy kiểm thử tự động đạt và đã mở thử cửa sổ desktop, chọn thư mục, lưu mã hóa, đóng/mở lại trên Windows. Chưa kiểm chứng đăng nhập/gửi nhận Zalo thật hoặc 6 phiên Zalo đồng thời.
+Bộ cài tạo tại `release/SAsistant-Setup-0.3.2-x64.exe`; file này không đưa vào Git. Mã nguồn desktop nằm trong `desktop/`; cài thư viện bằng `npm ci`, chạy `npm start`, đóng gói bằng `npm run dist:win`. Mười kiểm thử tự động đạt và đã mở thử cửa sổ desktop, chọn thư mục, lưu mã hóa, đóng/mở lại trên Windows. Chưa kiểm chứng đăng nhập/gửi nhận Zalo thật hoặc 6 phiên Zalo đồng thời.
 
 ## Bản connector cá nhân mới
 
@@ -32,3 +32,5 @@ Trong repository GitHub > Settings > Pages > Build and deployment: Deploy from a
 
 ## Bảo mật
 Repository công khai chỉ chứa mã và dữ liệu mẫu. localStorage không thích hợp để lưu thông tin khách hàng nhạy cảm trên máy dùng chung. Không đưa thông tin bí mật hoặc dữ liệu thực tế lên GitHub.
+
+Bản 0.3.2 bổ sung yêu cầu tin cũ qua WebSocket sau handshake, nút Tải tin cũ, Kết nối lại bằng phiên lưu và trạng thái kênh nhận tin. Phần thư mục được ẩn trong Cài đặt khi đã chọn kho. Lịch sử có thể chỉ được Zalo trả về một phần.

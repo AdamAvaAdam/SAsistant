@@ -17,7 +17,7 @@ function render() {
   $('storageTitle').textContent = info.folder ? 'Thư mục dữ liệu đang sử dụng' : 'Chọn nơi lưu dữ liệu để bắt đầu';
   $('chooseFolder').textContent = info.folder ? 'Đổi thư mục…' : 'Chọn thư mục lưu trữ';
   $('chooseFolder').disabled = changingFolder || sending;
-  $('version').textContent = 'Windows · v' + (info.version || '0.3.1'); $('welcome').hidden = !!info.folder;
+  $('version').textContent = 'Windows · v' + (info.version || '0.3.2'); $('welcome').hidden = !!info.folder;
   $('count').textContent = accounts.length + ' / 6'; $('addButton').disabled = !info.folder || accounts.length >= 6 || changingFolder;
   const accountKey = JSON.stringify(accounts.map(({ id, name, status, connecting }) => ({ id, name, status, connecting }))) + active;
   if (rendered !== accountKey) {
@@ -26,16 +26,20 @@ function render() {
       const box = node('div', '', 'account-card' + (a.id === active ? ' active' : ''));
       const b = node('button', a.name, 'account-select'); b.append(node('small', a.status)); b.onclick = () => select(a.id);
       const actions = node('div', '', 'account-actions');
+      const reconnect = node('button', 'Kết nối lại', 'small'); reconnect.disabled = a.connecting;
+      reconnect.onclick = async () => { try { error(); await api.reconnect(a.id); await refresh(); } catch (e) { error(e.message); } };
       const login = node('button', 'Đăng nhập lại', 'small'); login.disabled = a.connecting;
       login.onclick = async () => { try { error(); await api.login(a.id); await refresh(); } catch (e) { error(e.message); } };
       const remove = node('button', 'Xóa', 'small remove');
       remove.onclick = async () => { try { await api.remove(a.id); await refresh(); } catch (e) { error(e.message); } };
-      actions.append(login, remove); box.append(b, actions); $('accounts').append(box);
+      actions.append(reconnect, login, remove); box.append(b, actions); $('accounts').append(box);
     }
   }
   const a = accounts.find(a => a.id === active); $('qrArea').hidden = !a?.qr;
   if (a?.qr) $('qr').src = 'data:image/png;base64,' + a.qr; else $('qr').removeAttribute('src');
   $('qrStatus').textContent = a?.status || '';
+  $('syncStatus').textContent = a?.syncStatus || (a ? 'Chờ kênh tin nhắn sẵn sàng để tải lịch sử.' : 'Chọn tài khoản để xem tin nhắn.');
+  $('syncHistory').disabled = !a || a.status !== 'Đã kết nối' || changingFolder;
   const threads = new Map(); for (const m of a?.messages || []) threads.set(m.type + ':' + m.threadId, m);
   $('threadCount').textContent = String(threads.size); $('threads').replaceChildren(); $('noThreads').hidden = threads.size > 0;
   const query = $('search').value.toLowerCase();
@@ -85,6 +89,7 @@ $('chooseFolder').onclick = async () => {
 };
 $('add').onsubmit = async e => { e.preventDefault(); $('addButton').disabled = true; try { error(); const result = await api.add($('name').value); select(result.id); $('name').value = ''; await refresh(); } catch (e) { error(e.message); render(); } };
 $('search').oninput = render;
+$('syncHistory').onclick = async () => { if (!active) return; $('syncHistory').disabled = true; try { error(); await api.sync(active); await refresh(); } catch (e) { error(e.message); } finally { render(); } };
 $('text').oninput = saveDraft;
 $('send').onsubmit = async e => {
   e.preventDefault(); if (sending) return;
