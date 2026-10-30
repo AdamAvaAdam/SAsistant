@@ -1,6 +1,6 @@
 {
   "name": "sasistant-desktop",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "SAsistant — ứng dụng Zalo cá nhân cho Windows",
   "author": "AdamAvaAdam",
   "private": true,
@@ -35,7 +35,9 @@
       "desktop/window.css",
       "connector/zalo.mjs",
       "package.json",
-      "connector/inbox-sync.mjs"
+      "connector/inbox-sync.mjs",
+      "connector/content.mjs",
+      "desktop/media.mjs"
     ],
     "win": {
       "target": "nsis",

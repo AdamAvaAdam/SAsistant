@@ -52,3 +52,15 @@ test('no history response reports uncertainty; stale socket messages cannot ente
     assert.equal(f.account.messages.length, 0);
   } finally { f.controller.dispose(); }
 });
+test('resolves group titles and individual senders without discarding attachment metadata or live unread flags', async () => {
+  const f = fixture();
+  f.api.getGroupInfo = async () => ({ gridInfoMap: { group: { name: 'Resolved group' } } });
+  f.api.getUserInfo = async () => ({ changed_profiles: { user: { userId: 'user', displayName: 'Resolved sender' } } });
+  const message = msg('photo', 100, false, 1, 'group'); message.data.uidFrom = 'user'; message.data.msgType = 'chat.photo'; message.data.content = { href: 'https://photo.zaloapp.com/fixture' };
+  try {
+    f.listener.emit('message', message); f.listener.emit('old_messages', [message], 1);
+    await new Promise(resolve => setTimeout(resolve, 550));
+    assert.equal(f.account.messages[0].name, 'Resolved group'); assert.equal(f.account.messages[0].sender, 'Resolved sender');
+    assert.equal(f.account.messages[0].attachments[0].type, 'image'); assert.equal(f.account.messages[0].isLive, true);
+  } finally { f.controller.dispose(); }
+});

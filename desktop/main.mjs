@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, safeStorage, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, safeStorage, session, protocol, shell } from 'electron';
 import { readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -6,8 +6,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { EncryptedStore } from './storage.mjs';
 import { AccountManager } from './manager.mjs';
 import { connect } from '../connector/zalo.mjs';
+import { attachment, fetchMedia } from './media.mjs';
+import { safeUrl } from '../connector/content.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+protocol.registerSchemesAsPrivileged([{ scheme: 'sa-media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 if (!app.isPackaged && process.env.SASISTANT_DEV_PROFILE) {
   mkdirSync(path.resolve(process.env.SASISTANT_DEV_PROFILE), { recursive: true });
   app.setPath('userData', path.resolve(process.env.SASISTANT_DEV_PROFILE));
@@ -62,10 +65,23 @@ async function chooseFolder() {
 }
 async function boot() {
   await app.whenReady();
+  protocol.handle('sa-media', async request => {
+    try {
+      const ref = Object.fromEntries(new URL(request.url).searchParams), item = attachment(requireManager(), ref);
+      const response = await fetchMedia(item.url, request.headers.get('range'));
+      const mime = response.headers.get('content-type') || '';
+      if (!/^(image\/(png|jpeg|gif|webp|avif)|video\/(mp4|webm)|audio\/)/i.test(mime)) { await response.body?.cancel(); return new Response('Không xem trước được định dạng này.', { status: 415 }); }
+      const headers = { 'Content-Type': mime, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+      for (const name of ['content-length', 'content-range', 'accept-ranges']) if (response.headers.has(name)) headers[name] = response.headers.get(name);
+      let size = 0;
+      const limited = response.body.pipeThrough(new TransformStream({ transform(chunk, controller) { size += chunk.byteLength; if (size > 200 * 1024 * 1024) controller.error(new Error('Tệp quá 200 MB.')); else controller.enqueue(chunk); } }));
+      return new Response(limited, { status: response.status, headers });
+    } catch { return new Response('Không tải được nội dung từ Zalo.', { status: 502 }); }
+  });
   if (process.platform !== 'win32' || !await safeStorage.isAsyncEncryptionAvailable()) throw Error('Ứng dụng cần Windows có mã hóa tài khoản khả dụng.');
   // Renderer loads local assets only; Zalo network requests stay in the main process.
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('data:image/png;base64,') && !details.url.startsWith('devtools:') }));
+  session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('sa-media:') && !details.url.startsWith('data:image/png;base64,') && !details.url.startsWith('devtools:') }));
   Menu.setApplicationMenu(null);
   win = new BrowserWindow({ width: 1360, height: 900, minWidth: 1000, minHeight: 720, title: 'SAsistant', backgroundColor: '#f2f5fa', show: false,
     webPreferences: { preload: path.join(here, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, devTools: !app.isPackaged } });
@@ -79,6 +95,20 @@ async function boot() {
   secureHandle('sa:login', id => requireManager().login(id));
   secureHandle('sa:reconnect', id => requireManager().reconnect(id));
   secureHandle('sa:sync', id => requireManager().sync(id));
+  secureHandle('sa:thread-history', (id, threadId, type) => requireManager().threadHistory(id, threadId, type));
+  secureHandle('sa:read', (id, threadId, type, upto) => requireManager().markRead(id, threadId, type, upto));
+  secureHandle('sa:schedules', () => requireManager().schedules);
+  secureHandle('sa:schedule', (id, body) => requireManager().schedule(id, body));
+  secureHandle('sa:cancel-schedule', id => requireManager().cancelSchedule(id));
+  secureHandle('sa:open-link', async value => { const url = safeUrl(value); if (!url) throw Error('Liên kết không hợp lệ.'); await shell.openExternal(url); });
+  secureHandle('sa:save-file', async ref => {
+    const item = attachment(requireManager(), ref);
+    const result = await dialog.showSaveDialog(win, { title: 'Lưu tệp từ Zalo', defaultPath: path.join(app.getPath('downloads'), path.basename(item.name || 'tep-zalo').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')) });
+    if (result.canceled || !result.filePath) return { cancelled: true };
+    const response = await fetchMedia(item.url); const chunks = []; let size = 0;
+    for await (const chunk of response.body) { size += chunk.length; if (size > 200 * 1024 * 1024) throw Error('Tệp quá 200 MB.'); chunks.push(Buffer.from(chunk)); }
+    await writeFile(result.filePath, Buffer.concat(chunks)); return { ok: true };
+  });
   secureHandle('sa:remove', async id => {
     const result = await dialog.showMessageBox(win, { type: 'question', title: 'Xóa tài khoản khỏi SAsistant?', message: 'Xóa phiên và hộp thư của tài khoản này khỏi kho đang mở?', detail: 'Bản lưu dự phòng trước đó có thể còn dữ liệu. Muốn thu hồi phiên bên Zalo, hãy kiểm tra Thiết bị đăng nhập trên điện thoại.', buttons: ['Giữ lại', 'Xóa khỏi ứng dụng'], defaultId: 0, cancelId: 0 });
     if (result.response !== 1) return { cancelled: true };
